@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Matematika: Mana Yang Lebih Besar?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+        }
+        .circle-card {
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .circle-card:hover {
+            transform: scale(1.04);
+        }
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            text-align: center;
+            padding: 0 4px;
+        }
+        .fraction .numerator {
+            border-bottom: 2px solid currentColor;
+            padding-bottom: 2px;
+        }
+        .fraction .denominator {
+            padding-top: 2px;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .pulse-active {
+            animation: pulse-ring 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <header class="w-full max-w-4xl mx-auto p-4 sm:p-6 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600/30 border border-indigo-500/50 p-2.5 rounded-2xl flex items-center justify-center">
+                <span class="text-2xl">⚖️</span>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg sm:text-xl text-indigo-400 leading-tight">Math Size Clash</h1>
+                <p class="text-xs text-slate-400">Pilih Ekspresi Bernilai Lebih Besar</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 sm:gap-6">
+            <!-- Timer Badge -->
+            <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-2xl flex items-center gap-2">
+                <span class="text-amber-400 font-bold">⏳</span>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">Waktu</div>
+                    <div id="timer-text" class="font-bold text-lg text-amber-300">15s</div>
+                </div>
+            </div>
+
+            <!-- Score Badge -->
+            <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-2xl flex items-center gap-2">
+                <span class="text-emerald-400 font-bold">🏆</span>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">Skor</div>
+                    <div id="score-text" class="font-extrabold text-lg text-emerald-400">0</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="w-full max-w-4xl mx-auto px-4 flex-1 flex flex-col justify-center items-center py-4">
+        
+        <!-- Progress & Streak Bar -->
+        <div class="w-full flex justify-between items-center mb-6 text-xs text-slate-400 px-2">
+            <span id="streak-text" class="font-bold text-amber-400 flex items-center gap-1">🔥 Combo: 0x</span>
+            <span id="question-count" class="font-semibold">Soal #1</span>
+        </div>
+
+        <!-- The Circles Container -->
+        <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center justify-items-center relative min-h-[360px] my-auto">
+            
+            <!-- VS Divider Icon in middle -->
+            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none hidden md:flex flex-col items-center justify-center">
+                <span class="bg-slate-800 text-slate-400 font-black text-xs px-3 py-1.5 rounded-full border border-slate-700 shadow-xl">VS</span>
+            </div>
+
+            <!-- Left Circle Container -->
+            <div class="w-full h-full flex flex-col items-center justify-center min-h-[220px]">
+                <button id="btn-left" onclick="checkAnswer('left')" class="circle-card relative group flex flex-col items-center justify-center bg-gradient-to-br from-indigo-950/80 to-slate-900 border-2 border-indigo-500/40 hover:border-indigo-400 rounded-full cursor-pointer shadow-lg shadow-indigo-950/50 p-6 transition-all duration-300 active:scale-95">
+                    <span class="absolute -top-3 bg-indigo-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">Opsi A</span>
+                    <div id="expr-left" class="text-2xl sm:text-3xl font-bold text-indigo-100 my-auto text-center">
+                        <!-- Left Expression rendered here -->
+                    </div>
+                    <div id="val-left" class="text-sm font-semibold text-indigo-300/80 opacity-0 transition-opacity duration-500 mt-1">
+                        = 0
+                    </div>
+                </button>
+            </div>
+
+            <!-- Right Circle Container -->
+            <div class="w-full h-full flex flex-col items-center justify-center min-h-[220px]">
+                <button id="btn-right" onclick="checkAnswer('right')" class="circle-card relative group flex flex-col items-center justify-center bg-gradient-to-br from-purple-950/80 to-slate-900 border-2 border-purple-500/40 hover:border-purple-400 rounded-full cursor-pointer shadow-lg shadow-purple-950/50 p-6 transition-all duration-300 active:scale-95">
+                    <span class="absolute -top-3 bg-purple-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">Opsi B</span>
+                    <div id="expr-right" class="text-2xl sm:text-3xl font-bold text-purple-100 my-auto text-center">
+                        <!-- Right Expression rendered here -->
+                    </div>
+                    <div id="val-right" class="text-sm font-semibold text-purple-300/80 opacity-0 transition-opacity duration-500 mt-1">
+                        = 0
+                    </div>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Equal Value Button -->
+        <div class="mt-6">
+            <button id="btn-equal" onclick="checkAnswer('equal')" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-600 rounded-2xl text-slate-300 font-semibold text-sm transition flex items-center gap-2 shadow-md hover:text-white">
+                <span>🟰</span> Nilai Kedua Lingkaran Sama Besar
+            </button>
+        </div>
+
+        <div id="explanation-panel" class="w-full max-w-2xl mt-6 bg-slate-800/90 border border-slate-700 rounded-2xl p-5 hidden transition-all duration-300">
+            <div id="feedback-title" class="font-bold text-base mb-2 flex items-center gap-2">
+                <!-- Feedback message here -->
+            </div>
+            <div id="explanation-content" class="text-sm text-slate-300 space-y-2">
+                <!-- Steps explanation -->
+            </div>
+            <button id="btn-next" onclick="nextQuestion()" class="mt-4 w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
+                Lanjut Soal Berikutnya ➔
+            </button>
+        </div>
+
+    </main>
+
+    <div id="game-over-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+            <div class="text-5xl mb-4">🎉</div>
+            <h2 class="text-2xl font-extrabold text-white mb-1">Permainan Selesai!</h2>
+            <p class="text-slate-400 text-sm mb-6">Kamu telah menyelesaikan sesi kuis matematika ini.</p>
+
+            <div class="bg-slate-800/60 rounded-2xl p-4 mb-6 border border-slate-700/50 space-y-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-400">Total Skor Akhir</span>
+                    <span id="final-score" class="font-black text-2xl text-emerald-400">0</span>
+                </div>
+                <div class="flex justify-between items-center text-sm border-t border-slate-700/50 pt-2">
+                    <span class="text-slate-400">Akurasi Jawaban</span>
+                    <span id="final-accuracy" class="font-bold text-indigo-300">0%</span>
+                </div>
+            </div>
+
+            <button onclick="restartGame()" class="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition">
+                Main Lagi 🔄
+            </button>
+        </div>
+    </div>
+
+    <footer class="w-full text-center p-4 text-xs text-slate-500">
+        Math Size Clash &bull; Visualisasikan Nilai Matematika dengan Ukuran Lingkaran
+    </footer>
+
+    <script>
+        let state = {
+            score: 0,
+            questionNumber: 1,
+            maxQuestions: 10,
+            streak: 0,
+            correctAnswers: 0,
+            currentQuestion: null,
+            timer: 15,
+            timerInterval: null,
+            isAnswered: false
+        };
+
+        // Web Audio API Synth for sound effects
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
+                osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.1); // E3
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        function generateExpression() {
+            const types = ['arithmetic', 'fraction', 'power', 'sqrt'];
+            const type = types[Math.floor(Math.random() * types.length)];
+
+            let html = '';
+            let value = 0;
+            let steps = '';
+
+            switch (type) {
+                case 'arithmetic': {
+                    const ops = ['+', '-', '×', '÷'];
+                    const op = ops[Math.floor(Math.random() * ops.length)];
+                    let a, b;
+                    if (op === '+') {
+                        a = getRandomInt(5, 50); b = getRandomInt(5, 50);
+                        value = a + b;
+                        steps = `${a} + ${b} = ${value}`;
+                    } else if (op === '-') {
+                        a = getRandomInt(20, 80); b = getRandomInt(5, a - 1);
+                        value = a - b;
+                        steps = `${a} - ${b} = ${value}`;
+                    } else if (op === '×') {
+                        a = getRandomInt(3, 12); b = getRandomInt(3, 12);
+                        value = a * b;
+                        steps = `${a} × ${b} = ${value}`;
+                    } else { // ÷
+                        b = getRandomInt(2, 10);
+                        value = getRandomInt(2, 12);
+                        a = b * value;
+                        steps = `${a} ÷ ${b} = ${value}`;
+                    }
+                    html = `${a} ${op} ${b}`;
+                    break;
+                }
+                case 'fraction': {
+                    const ops = ['+', '-'];
+                    const op = ops[Math.floor(Math.random() * ops.length)];
+                    const den1 = getRandomInt(2, 6);
+                    const den2 = getRandomInt(2, 6);
+                    const num1 = getRandomInt(1, den1 - 1);
+                    const num2 = getRandomInt(1, den2 - 1);
+
+                    const val1 = num1 / den1;
+                    const val2 = num2 / den2;
+
+                    if (op === '+') {
+                        value = val1 + val2;
+                        steps = `(${num1}/${den1} = ${val1.toFixed(2)}) + (${num2}/${den2} = ${val2.toFixed(2)}) = ${value.toFixed(2)}`;
+                    } else {
+                        // Ensure positive
+                        if (val1 >= val2) {
+                            value = val1 - val2;
+                            steps = `(${num1}/${den1} = ${val1.toFixed(2)}) - (${num2}/${den2} = ${val2.toFixed(2)}) = ${value.toFixed(2)}`;
+                            html = `<div class="fraction"><span class="numerator">${num1}</span><span class="denominator">${den1}</span></div> - <div class="fraction"><span class="numerator">${num2}</span><span class="denominator">${den2}</span></div>`;
+                        } else {
+                            value = val2 - val1;
+                            steps = `(${num2}/${den2} = ${val2.toFixed(2)}) - (${num1}/${den1} = ${val1.toFixed(2)}) = ${value.toFixed(2)}`;
+                            html = `<div class="fraction"><span class="numerator">${num2}</span><span class="denominator">${den2}</span></div> - <div class="fraction"><span class="numerator">${num1}</span><span class="denominator">${den1}</span></div>`;
+                        }
+                        break;
+                    }
+
+                    html = `<div class="fraction"><span class="numerator">${num1}</span><span class="denominator">${den1}</span></div> ${op} <div class="fraction"><span class="numerator">${num2}</span><span class="denominator">${den2}</span></div>`;
+                    break;
+                }
+                case 'power': {
+                    const base = getRandomInt(2, 5);
+                    const exp = getRandomInt(2, 4);
+                    value = Math.pow(base, exp);
+                    html = `${base}<sup>${exp}</sup>`;
+                    steps = `${base}<sup>${exp}</sup> = ${value}`;
+                    break;
+                }
+                case 'sqrt': {
+                    const rootVal = getRandomInt(3, 15);
+                    const number = rootVal * rootVal;
+                    const adder = getRandomInt(0, 1) === 1 ? getRandomInt(2, 10) : 0;
+                    
+                    if (adder > 0) {
+                        value = rootVal + adder;
+                        html = `√${number} + ${adder}`;
+                        steps = `√${number} (${rootVal}) + ${adder} = ${value}`;
+                    } else {
+                        value = rootVal;
+                        html = `√${number}`;
+                        steps = `√${number} = ${value}`;
+                    }
+                    break;
+                }
+            }
+
+            return { html, value: parseFloat(value.toFixed(2)), steps };
+        }
+
+        function loadNextQuestion() {
+            state.isAnswered = false;
+            document.getElementById('explanation-panel').classList.add('hidden');
+            
+            // Generate two expressions
+            let left = generateExpression();
+            let right = generateExpression();
+
+            // 15% chance to force equal values for testing "Equal" option
+            if (Math.random() < 0.15) {
+                right = { ...left };
+            }
+
+            state.currentQuestion = { left, right };
+
+            // Render text in DOM
+            document.getElementById('expr-left').innerHTML = left.html;
+            document.getElementById('expr-right').innerHTML = right.html;
+
+            document.getElementById('val-left').textContent = `= ${left.value}`;
+            document.getElementById('val-right').textContent = `= ${right.value}`;
+            document.getElementById('val-left').classList.add('opacity-0');
+            document.getElementById('val-right').classList.add('opacity-0');
+
+            // Reset circle visual styles
+            resetCircleStyles();
+
+            // Set UI details
+            document.getElementById('question-count').textContent = `Soal #${state.questionNumber} / ${state.maxQuestions}`;
+            
+            // Start Timer
+            startTimer();
+        }
+
+        function resetCircleStyles() {
+            const btnLeft = document.getElementById('btn-left');
+            const btnRight = document.getElementById('btn-right');
+
+            // Standard base diameter for mobile/desktop
+            const baseSize = window.innerWidth < 640 ? 160 : 200;
+
+            btnLeft.style.width = `${baseSize}px`;
+            btnLeft.style.height = `${baseSize}px`;
+            btnRight.style.width = `${baseSize}px`;
+            btnRight.style.height = `${baseSize}px`;
+
+            btnLeft.className = "circle-card relative group flex flex-col items-center justify-center bg-gradient-to-br from-indigo-950/80 to-slate-900 border-2 border-indigo-500/40 hover:border-indigo-400 rounded-full cursor-pointer shadow-lg shadow-indigo-950/50 p-6 transition-all duration-500 active:scale-95";
+            btnRight.className = "circle-card relative group flex flex-col items-center justify-center bg-gradient-to-br from-purple-950/80 to-slate-900 border-2 border-purple-500/40 hover:border-purple-400 rounded-full cursor-pointer shadow-lg shadow-purple-950/50 p-6 transition-all duration-500 active:scale-95";
+        }
+
+        function adjustCircleSizes(valLeft, valRight) {
+            const btnLeft = document.getElementById('btn-left');
+            const btnRight = document.getElementById('btn-right');
+
+            const baseSize = window.innerWidth < 640 ? 150 : 180;
+            const maxSize = window.innerWidth < 640 ? 210 : 250;
+            const minSize = window.innerWidth < 640 ? 120 : 140;
+
+            if (valLeft === valRight) {
+                btnLeft.style.width = `${baseSize}px`;
+                btnLeft.style.height = `${baseSize}px`;
+                btnRight.style.width = `${baseSize}px`;
+                btnRight.style.height = `${baseSize}px`;
+                return;
+            }
+
+            // Calculate ratio for dynamic scaling
+            const maxVal = Math.max(Math.abs(valLeft), Math.abs(valRight), 1);
+            const ratioLeft = Math.max(valLeft, 0.1) / maxVal;
+            const ratioRight = Math.max(valRight, 0.1) / maxVal;
+
+            const sizeLeft = minSize + (ratioLeft * (maxSize - minSize));
+            const sizeRight = minSize + (ratioRight * (maxSize - minSize));
+
+            btnLeft.style.width = `${sizeLeft}px`;
+            btnLeft.style.height = `${sizeLeft}px`;
+            btnRight.style.width = `${sizeRight}px`;
+            btnRight.style.height = `${sizeRight}px`;
+        }
+
+        function startTimer() {
+            clearInterval(state.timerInterval);
+            state.timer = 15;
+            document.getElementById('timer-text').textContent = `${state.timer}s`;
+
+            state.timerInterval = setInterval(() => {
+                state.timer--;
+                document.getElementById('timer-text').textContent = `${state.timer}s`;
+
+                if (state.timer <= 0) {
+                    clearInterval(state.timerInterval);
+                    checkAnswer('timeout');
+                }
+            }, 1000);
+        }
+
+        function checkAnswer(selected) {
+            if (state.isAnswered) return;
+            state.isAnswered = true;
+            clearInterval(state.timerInterval);
+
+            const valLeft = state.currentQuestion.left.value;
+            const valRight = state.currentQuestion.right.value;
+
+            // Determine correct answer string
+            let correctAnswer = '';
+            if (valLeft > valRight) correctAnswer = 'left';
+            else if (valRight > valLeft) correctAnswer = 'right';
+            else correctAnswer = 'equal';
+
+            const isCorrect = (selected === correctAnswer);
+
+            // Dynamically resize circles based on values
+            adjustCircleSizes(valLeft, valRight);
+
+            // Show numerical values inside circles
+            document.getElementById('val-left').classList.remove('opacity-0');
+            document.getElementById('val-right').classList.remove('opacity-0');
+
+            // Apply highlight styles
+            const btnLeft = document.getElementById('btn-left');
+            const btnRight = document.getElementById('btn-right');
+
+            if (correctAnswer === 'left') {
+                btnLeft.classList.add('border-emerald-400', 'bg-emerald-950/40', 'shadow-emerald-500/20');
+                btnRight.classList.add('opacity-60');
+            } else if (correctAnswer === 'right') {
+                btnRight.classList.add('border-emerald-400', 'bg-emerald-950/40', 'shadow-emerald-500/20');
+                btnLeft.classList.add('opacity-60');
+            } else {
+                btnLeft.classList.add('border-amber-400');
+                btnRight.classList.add('border-amber-400');
+            }
+
+            // Update state
+            if (isCorrect) {
+                playSound('correct');
+                state.streak++;
+                state.correctAnswers++;
+                const bonus = state.streak * 5;
+                state.score += 100 + bonus;
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
+                }
+            } else {
+                playSound('wrong');
+                state.streak = 0;
+            }
+
+            // Update Scoreboard
+            document.getElementById('score-text').textContent = state.score;
+            document.getElementById('streak-text').textContent = `🔥 Combo: ${state.streak}x`;
+
+            // Display Explanation Panel
+            showExplanation(isCorrect, selected, correctAnswer);
+        }
+
+        function showExplanation(isCorrect, selected, correctAnswer) {
+            const panel = document.getElementById('explanation-panel');
+            const title = document.getElementById('feedback-title');
+            const content = document.getElementById('explanation-content');
+
+            panel.classList.remove('hidden');
+
+            if (selected === 'timeout') {
+                title.className = "font-bold text-base mb-2 flex items-center gap-2 text-amber-400";
+                title.innerHTML = `<span>⏰</span> Waktu Habis!`;
+            } else if (isCorrect) {
+                title.className = "font-bold text-base mb-2 flex items-center gap-2 text-emerald-400";
+                title.innerHTML = `<span>✅</span> Tepat Sekali! Jawabanmu Benar.`;
+            } else {
+                title.className = "font-bold text-base mb-2 flex items-center gap-2 text-rose-400";
+                title.innerHTML = `<span>❌</span> Kurang Tepat!`;
+            }
+
+            const qLeft = state.currentQuestion.left;
+            const qRight = state.currentQuestion.right;
+
+            content.innerHTML = `
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 space-y-1">
+                    <div><strong class="text-indigo-400">Opsi A:</strong> ${qLeft.steps}</div>
+                    <div><strong class="text-purple-400">Opsi B:</strong> ${qRight.steps}</div>
+                </div>
+                <p class="mt-2 text-xs text-slate-400">
+                    Opsi A bernilai <strong>${qLeft.value}</strong> dan Opsi B bernilai <strong>${qRight.value}</strong>.
+                    ${qLeft.value > qRight.value 
+                        ? 'Sehingga Opsi A lebih besar dari Opsi B.' 
+                        : (qRight.value > qLeft.value ? 'Sehingga Opsi B lebih besar dari Opsi A.' : 'Kedua opsi memiliki nilai yang persis sama.')}
+                </p>
+            `;
+        }
+
+        function nextQuestion() {
+            if (state.questionNumber >= state.maxQuestions) {
+                endGame();
+            } else {
+                state.questionNumber++;
+                loadNextQuestion();
+            }
+        }
+
+        function endGame() {
+            clearInterval(state.timerInterval);
+            const modal = document.getElementById('game-over-modal');
+            document.getElementById('final-score').textContent = state.score;
+            
+            const accuracy = Math.round((state.correctAnswers / state.maxQuestions) * 100);
+            document.getElementById('final-accuracy').textContent = `${accuracy}%`;
+
+            modal.classList.remove('hidden');
+        }
+
+        function restartGame() {
+            state.score = 0;
+            state.questionNumber = 1;
+            state.streak = 0;
+            state.correctAnswers = 0;
+            
+            document.getElementById('score-text').textContent = '0';
+            document.getElementById('streak-text').textContent = '🔥 Combo: 0x';
+            document.getElementById('game-over-modal').classList.add('hidden');
+
+            loadNextQuestion();
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            loadNextQuestion();
+        };
+    </script>
+</body>
+</html>
